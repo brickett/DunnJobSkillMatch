@@ -2,6 +2,7 @@
 library(readxl)
 library(haven)
 library(plyr)
+library(dplyr)
 
 # set directory to GitHub repo
 setwd("C:/Users/bjr21/Documents/GitHub/DunnJobSkillMatch")
@@ -9,10 +10,13 @@ setwd("C:/Users/bjr21/Documents/GitHub/DunnJobSkillMatch")
 # Import Data
 EdAtt <- read_sas("IA_IL_EdAtt.sas7bdat")
 Zone <- read_excel("Job_Zones.xlsx")
-Empdata <- read_excel("state_M2017_dl.xlsx")
+Empdata <- read_excel("ltprojections.xlsx")
+LoD <- read_excel("state_M2017_dl.xlsx")
+
+colnames(Empdata) <- c("StateFIPS", "AreaName", "OccCode", "OccName", "BaseYear", "Base", "ProjYear", "Proj", "Change", "PctChange", "AvgAnnOpen")
 
 # Subset to IN and IL
-Empdata <- subset(Empdata, ST == "IA" | ST == "IL")
+Empdata <- subset(Empdata, StateFIPS == "17" | StateFIPS == "19")
 
 ## Workforce Information
 # Recode Education to Job Zone
@@ -42,3 +46,16 @@ Zone_IA$Perc <- Zone_IA$freq
 
 Zone_IL$Perc <- Zone_IL$Perc/Tot_Zone_IL*100
 Zone_IA$Perc <- Zone_IA$Perc/Tot_Zone_IA*100
+
+## Match Occupation Data with Job Zone
+# Get unique set of codes and groups to take only the detailed codes
+LoD <- LoD[c("OCC_CODE", "OCC_GROUP")]
+colnames(LoD) <- c("OccCode", "OccGroup")
+LoD_unique <- unique(LoD)
+
+# Join datasets
+Empdata_Codes <- merge(Empdata, LoD_unique, by="OccCode", all=TRUE)
+Empdata_Codes <- subset(Empdata_Codes, OccGroup != "total")
+Empdata_Codes <- subset(Empdata_Codes, OccGroup != "major")
+Empdata_Codes <- subset(Empdata_Codes, AreaName != is.na(TRUE))
+
